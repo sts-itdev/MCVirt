@@ -365,6 +365,29 @@ class Parser(object):
         self.network_subparser.add_parser('list', help='List the networks on the node',
                                           parents=[self.parent_parser])
 
+        #Create subparser for VNC commands
+        self.vnc_parser = self.subparsers.add_parser('vnc', help='Connect or disconnect from VNC',
+                                                    parents=[self.parent_parser])
+        self.vnc_subparser = self.vnc_parser.add_subparsers(
+            dest='vnc_action',
+            metavar='Action',
+            help='Action to perform for the VNC'
+        )
+        self.vnc_connect_parser = self.vnc_subparser.add_parser(
+            'connect',
+            help='Connect to the VNC server',
+            parents=[self.parent_parser]
+        )
+        self.vnc_connect_parser.add_argument('vm_name', metavar='VM Name', type=str,
+                                            help='Name of VM')
+        self.vnc_disconnect_parser = self.vnc_subparser.add_parser(
+            'disconnect',
+            help='Disconnect from the VNC server',
+            parents=[self.parent_parser]
+        )
+        self.vnc_disconnect_parser.add_argument('vm_name', metavar='VM Name', type=str,
+                                            help='Name of VM')
+
         # Get arguments for getting VM information
         self.info_parser = self.subparsers.add_parser('info', help='View VM information',
                                                       parents=[self.parent_parser])
@@ -1201,3 +1224,16 @@ class Parser(object):
                 user = user_factory.get_user_by_username(args.remove_username)
                 rpc.annotate_object(user)
                 user.delete()
+        elif action == 'vnc':
+            if args.vnc_action == 'connect':
+                vm_factory = rpc.get_connection('virtual_machine_factory')
+                vm_object = vm_factory.getVirtualMachineByName(args.vm_name)
+                rpc.annotate_object(vm_object)
+                results = vm_object.connect_vnc()
+                self.print_status('Hostname: %s VNC port: %s Password: %s' %
+                    (results['hostname'], results['port'], results['password']))
+            elif args.vnc_action == 'disconnect':
+                vm_factory = rpc.get_connection('virtual_machine_factory')
+                vm_object = vm_factory.getVirtualMachineByName(args.vm_name)
+                rpc.annotate_object(vm_object)
+                vm_object.disconnect_vnc()

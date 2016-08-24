@@ -1218,15 +1218,15 @@ class VirtualMachine(PyroObject):
             self
         )
 
-        if self._getPowerState() is not PowerStates.RUNNING:
-            raise VmAlreadyStoppedException('The VM is not running')
         domain_xml = ET.fromstring(
             self._getLibvirtDomainObject().XMLDesc(
                 libvirt.VIR_DOMAIN_XML_SECURE
             )
         )
 
-        if domain_xml.find('./devices/graphics[@type="vnc"]') is None:
+        if self._getPowerState() is not PowerStates.RUNNING:
+            return None
+        elif domain_xml.find('./devices/graphics[@type="vnc"]') is None:
             raise VncNotEnabledException('VNC is not enabled on the VM')
         else:
             return domain_xml.find('./devices/graphics[@type="vnc"]').get('port')
@@ -1265,8 +1265,11 @@ class VirtualMachine(PyroObject):
             self
         )
 
-        if self._getPowerState() is not PowerStates.RUNNING:
-            raise VmAlreadyStoppedException('The VM is not running')
+        if self.isRegisteredRemotely() and self._is_cluster_master:
+            remote_vm = self.get_remote_object()
+            return remote_vm.connect_vnc() 
+
+        self.ensureRegisteredLocally()
 
         def updateXML(domain_xml):
             updateXML.passwd = self._set_vnc_listen_address(domain_xml, '0.0.0.0')
@@ -1285,8 +1288,9 @@ class VirtualMachine(PyroObject):
             self
         )
 
-        if self._getPowerState() is not PowerStates.RUNNING:
-            raise VmAlreadyStoppedException('The VM is not running')
+        if self.isRegisteredRemotely() and self._is_cluster_master:
+            remote_vm = self.get_remote_object()
+            return remote_vm.disconnect_vnc() 
 
         def updateXML(domain_xml):
             self._set_vnc_listen_address(domain_xml, '127.0.0.1')

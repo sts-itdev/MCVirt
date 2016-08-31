@@ -21,6 +21,7 @@ import Pyro4
 from texttable import Texttable
 import xml.etree.ElementTree as ET
 import netifaces
+from libvirt import libvirtError
 
 from mcvirt.exceptions import (NetworkAlreadyExistsException, LibvirtException,
                                InterfaceDoesNotExist, NetworkDoesNotExistException)
@@ -30,6 +31,7 @@ from mcvirt.rpc.lock import locking_method
 from mcvirt.rpc.pyro_object import PyroObject
 from mcvirt.argument_validator import ArgumentValidator
 from mcvirt.utils import get_hostname
+from mcvirt.syslogger import Syslogger
 
 
 class Factory(PyroObject):
@@ -180,3 +182,22 @@ class Factory(PyroObject):
         # Determine if the name of any of the networks returned
         # matches the requested name
         return (name in networks.keys())
+
+    def initialise(self):
+        """Delete the default libvirt network if it exists"""
+        libvirt = self._get_registered_object('libvirt_connector').get_connection()
+        try:
+            default = libvirt.networkLookupByName('default')
+            try:
+                default.destroy()
+            except:
+                pass
+
+            try:
+                default.undefine()
+            except:
+                pass
+
+        except libvirtError:
+            # Fail silently
+            Syslogger.logger().info('Failed to find default network')

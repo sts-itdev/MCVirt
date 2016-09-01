@@ -30,6 +30,7 @@ from mcvirt.node.network.network import Network
 from mcvirt.rpc.lock import locking_method
 from mcvirt.rpc.pyro_object import PyroObject
 from mcvirt.argument_validator import ArgumentValidator
+from mcvirt.utils import get_hostname
 from mcvirt.syslogger import Syslogger
 from mcvirt.utils import get_hostname
 
